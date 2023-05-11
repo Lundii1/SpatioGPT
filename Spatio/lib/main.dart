@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_sound/public/flutter_sound_recorder.dart';
 import 'package:spatio/KeySingleton.dart';
 import 'OpenAIService.dart';
@@ -36,6 +38,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _textEditingController = TextEditingController();
+  final _scrollController = ScrollController();
   List<String> _messages = [];
   KeySingleton keySingleton = KeySingleton();
   String key = "";
@@ -56,7 +59,11 @@ class _MyHomePageState extends State<MyHomePage> {
       this.key = loadedKey;
     });
   }
-
+  void _scrollToBottom() {
+    Timer(Duration(milliseconds: 400), () {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+  });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -65,6 +72,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       drawer: Drawer(
         child: ListView(
+          shrinkWrap: true,
           padding: EdgeInsets.zero,
           children: <Widget>[
             DrawerHeader(
@@ -146,7 +154,9 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             Expanded(
               child: ListView.builder(
+                controller: _scrollController,
                 itemCount: _messages.length,
+                cacheExtent: 99999,
                 itemBuilder: (BuildContext context, int index) {
                   final parts = _messages[index].split(' ');
                   final title = parts.first == 'AI:' ? 'SpatioGPT' : 'User';
@@ -192,6 +202,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 const SizedBox(width: 16.0),
                 Expanded(
                   child: TextFormField(
+                    onTap: () async{
+                      if(MediaQuery.of(context).viewInsets.bottom == 0) {
+                        _scrollToBottom();
+                      }
+                    },
                     controller: _textEditingController,
                     decoration: const InputDecoration(
                       hintText: 'Enter a message',
