@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/public/flutter_sound_recorder.dart';
+import 'package:spatio/KeySingleton.dart';
 import 'OpenAIService.dart';
 
 void main() {
@@ -36,12 +37,26 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _textEditingController = TextEditingController();
   List<String> _messages = [];
+  KeySingleton keySingleton = KeySingleton();
   String key = "";
   bool _isInputEnabled = true;
   //sound
   bool _isRecording = false;
   late StreamSubscription _recordingDataSubscription;
   FlutterSoundRecorder _audioRecorder = FlutterSoundRecorder();
+  @override
+  void initState() {
+    super.initState();
+    _loadKey();
+  }
+
+  Future<void> _loadKey() async {
+    final loadedKey = await keySingleton.get();
+    setState(() {
+      this.key = loadedKey;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,7 +92,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
-                    final TextEditingController controller = TextEditingController();
+                    final TextEditingController controller =
+                        TextEditingController();
                     return AlertDialog(
                       title: Text("Enter your OpenAI API key"),
                       content: TextFormField(
@@ -99,6 +115,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           onPressed: () {
                             setState(() {
                               key = controller.text;
+                              keySingleton.save(controller.text);
                             });
                             Navigator.of(context).pop();
                           },
@@ -133,11 +150,26 @@ class _MyHomePageState extends State<MyHomePage> {
                 itemBuilder: (BuildContext context, int index) {
                   final parts = _messages[index].split(' ');
                   final title = parts.first == 'AI:' ? 'SpatioGPT' : 'User';
-                  final avatar = parts.first == 'AI:' ? Image.asset('assets/openai.png', width: 30, height: 30,) : Image.asset('assets/user.png', width: 40, height: 40,);
+                  final avatar = parts.first == 'AI:'
+                      ? Image.asset(
+                          'assets/openai.png',
+                          width: 30,
+                          height: 30,
+                        )
+                      : Image.asset(
+                          'assets/user.png',
+                          width: 40,
+                          height: 40,
+                        );
                   return ListTile(
-                    leading: CircleAvatar(child: avatar, radius: 18, backgroundColor: Colors.blueAccent,),
+                    leading: CircleAvatar(
+                      child: avatar,
+                      radius: 18,
+                      backgroundColor: Colors.blueAccent,
+                    ),
                     title: Text(title),
-                    subtitle: Text(_messages[index].substring(_messages[index].indexOf(' ') + 1)),
+                    subtitle: Text(_messages[index]
+                        .substring(_messages[index].indexOf(' ') + 1)),
                   );
                 },
               ),
@@ -189,17 +221,17 @@ class _MyHomePageState extends State<MyHomePage> {
     await _audioRecorder.openRecorder();
     await _audioRecorder.startRecorder(toFile: 'temp.wav');
 
-    _recordingDataSubscription =
-        _audioRecorder.onProgress!.listen((e) {
-          if (e != null && e.duration != null) {
-            print('Recording: ${e.duration}');
-          }
-        });
+    _recordingDataSubscription = _audioRecorder.onProgress!.listen((e) {
+      if (e != null && e.duration != null) {
+        print('Recording: ${e.duration}');
+      }
+    });
 
     setState(() {
       _isRecording = true;
     });
   }
+
   Future<void> _stopRecording() async {
     await _audioRecorder.stopRecorder();
     await _audioRecorder.closeRecorder();
@@ -208,8 +240,9 @@ class _MyHomePageState extends State<MyHomePage> {
       _isRecording = false;
     });
   }
+
   void sendMessage() {
-    if(key == "") {
+    if (key == "") {
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -229,17 +262,24 @@ class _MyHomePageState extends State<MyHomePage> {
       );
       return;
     }
-    _isInputEnabled = false;
     setState(() {
-      OpenAIService().message(key, _textEditingController.text, _messages).then((value) {
+      _messages.add("User: " + _textEditingController.text);
+    });
+    _isInputEnabled = false;
+    setState(() async {
+      String APIkey = await key;
+      OpenAIService()
+          .message(APIkey, _textEditingController.text, _messages)
+          .then((value) {
         setState(() {
-          if(value.contains("Incorrect API key provided")) {
+          if (value.contains("Incorrect API key provided")) {
             showDialog(
               context: context,
               builder: (BuildContext context) {
                 return AlertDialog(
                   title: Text("Incorrect API key"),
-                  content: Text("You can find your API key at https://platform.openai.com/"),
+                  content: Text(
+                      "You can find your API key at https://platform.openai.com/"),
                   actions: [
                     TextButton(
                       child: Text("OK"),
@@ -251,15 +291,31 @@ class _MyHomePageState extends State<MyHomePage> {
                 );
               },
             );
-          }
-          else
-          {
+          } else if (value.contains("401}")) {
+            showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text("Unauthorized"),
+                    content:
+                        Text("Unauthorized, maybe your API key is incorrect?"),
+                    actions: [
+                      TextButton(
+                        child: Text("OK"),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  );
+                });
+          } else {
             _messages.add("AI: " + value);
           }
           _isInputEnabled = true;
         });
       });
-      _messages.add("User: " + _textEditingController.text);
       _textEditingController.clear();
-    });}
+    });
+  }
 }

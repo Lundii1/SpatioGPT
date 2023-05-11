@@ -39,6 +39,7 @@ dependencies:
   dart_openai: ^1.8.4
   flutter_sound: ^9.2.13
   flutter_launcher_icons: ^0.13.1
+  shared_preferences: ^2.1.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
