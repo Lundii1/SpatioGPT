@@ -43,6 +43,7 @@ class _MyHomePageState extends State<MyHomePage> {
   KeySingleton keySingleton = KeySingleton();
   String key = "";
   bool _isInputEnabled = true;
+  bool _newMessage = false;
   //sound
   bool _isRecording = false;
   late StreamSubscription _recordingDataSubscription;
@@ -51,6 +52,14 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _loadKey();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        setState(() {
+          _newMessage = false;
+        });
+      }
+    });
   }
 
   Future<void> _loadKey() async {
@@ -59,11 +68,13 @@ class _MyHomePageState extends State<MyHomePage> {
       this.key = loadedKey;
     });
   }
+
   void _scrollToBottom() {
-    Timer(Duration(milliseconds: 400), () {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-  });
+    Timer(Duration(milliseconds: 455), () {
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    });
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -140,6 +151,9 @@ class _MyHomePageState extends State<MyHomePage> {
               onTap: () {
                 setState(() {
                   _messages.clear();
+                  setState(() {
+                    _newMessage = false;
+                  });
                   Navigator.of(context).pop();
                 });
               },
@@ -156,7 +170,7 @@ class _MyHomePageState extends State<MyHomePage> {
               child: ListView.builder(
                 controller: _scrollController,
                 itemCount: _messages.length,
-                cacheExtent: 99999,
+                cacheExtent: 999999,
                 itemBuilder: (BuildContext context, int index) {
                   final parts = _messages[index].split(' ');
                   final title = parts.first == 'AI:' ? 'SpatioGPT' : 'User';
@@ -184,6 +198,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 },
               ),
             ),
+            bottomArrowFloatingActionButton() ?? Container(),
             SizedBox(height: 16.0),
             Row(
               children: <Widget>[
@@ -202,8 +217,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 const SizedBox(width: 16.0),
                 Expanded(
                   child: TextFormField(
-                    onTap: () async{
-                      if(MediaQuery.of(context).viewInsets.bottom == 0) {
+                    onTap: () async {
+                      if (MediaQuery.of(context).viewInsets.bottom == 0) {
                         _scrollToBottom();
                       }
                     },
@@ -278,7 +293,8 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
     setState(() {
-      _messages.add("User: " + _textEditingController.text);
+      _messages.add("User: ${_textEditingController.text}");
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
     });
     _isInputEnabled = false;
     setState(() async {
@@ -326,11 +342,46 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
           } else {
             _messages.add("AI: " + value);
+            print(_scrollController.position.maxScrollExtent);
+            print(MediaQuery.of(context).size.height);
+            if (_scrollController.position.maxScrollExtent <=
+                _scrollController.offset * 1.5) {
+              _scrollToBottom();
+            } else if (_scrollController.position.maxScrollExtent >=
+                MediaQuery.of(context).size.height / 2) {
+              setState(() {
+                _newMessage = true;
+              });
+            }
           }
           _isInputEnabled = true;
         });
       });
       _textEditingController.clear();
     });
+  }
+
+  Padding? bottomArrowFloatingActionButton() {
+    if (_newMessage == true) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 5.0),
+        child: SizedBox(
+          height: 35,
+          width: 35,
+          child: FloatingActionButton(
+            mini: true,
+            onPressed: () {
+              setState(() {
+                _newMessage = false;
+              });
+              _scrollToBottom();
+            },
+            child: Icon(Icons.arrow_downward),
+          ),
+        ),
+      );
+    } else {
+      return null;
+    }
   }
 }
