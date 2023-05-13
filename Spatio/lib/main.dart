@@ -77,6 +77,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if(key == "") {
+      Future.delayed(Duration.zero, () => askKeyIfEmpty(context));
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -111,36 +114,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
-                    final TextEditingController controller =
-                        TextEditingController();
-                    return AlertDialog(
-                      title: Text("Enter your OpenAI API key"),
-                      content: TextFormField(
-                        controller: controller,
-                        decoration: InputDecoration(
-                          hintText: key.isNotEmpty ? key : "API key",
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          child: Text("Cancel"),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                        TextButton(
-                          child: Text("Save"),
-                          onPressed: () {
-                            setState(() {
-                              key = controller.text;
-                              keySingleton.save(controller.text);
-                            });
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                      ],
-                    );
+                    return askKey(context);
                   },
                 );
               },
@@ -243,6 +217,68 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  AlertDialog askKeyIfEmpty(BuildContext context) {
+    final TextEditingController controller = TextEditingController();
+    return AlertDialog(
+      title: Text("Enter your OpenAI API key, for more info visit https://platform.openai.com/"),
+      content: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          hintText: key.isNotEmpty ? key : "API key",
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          child: Text("Cancel"),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        TextButton(
+          child: Text("Save"),
+          onPressed: () {
+            setState(() {
+              key = controller.text;
+              keySingleton.save(controller.text);
+            });
+            Navigator.of(context).pop();
+          },
+        ),
+      ],
+    );
+  }
+  AlertDialog askKey(BuildContext context) {
+    final TextEditingController controller = TextEditingController();
+    return AlertDialog(
+      title: Text("Enter your OpenAI API key"),
+      content: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          hintText: key.isNotEmpty ? key : "API key",
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          child: Text("Cancel"),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        TextButton(
+          child: Text("Save"),
+          onPressed: () {
+            setState(() {
+              key = controller.text;
+              keySingleton.save(controller.text);
+            });
+            Navigator.of(context).pop();
+          },
+        ),
+      ],
+    );
+  }
   Future<void> _startRecording() async {
     if (_isRecording) {
       return;
