@@ -38,6 +38,8 @@ dependencies:
   dio: ^5.1.2
   dart_openai: ^1.8.4
   flutter_sound: ^9.2.13
+  flutter_launcher_icons: ^0.13.1
+  shared_preferences: ^2.1.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -49,6 +51,10 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
 
+flutter_launcher_icons:
+  image_path: "assets/logo.png"
+  android: true
+  ios: true
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
